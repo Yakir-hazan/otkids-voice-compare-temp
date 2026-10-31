@@ -11,7 +11,7 @@ const path = require('path');
 //   node otkids-compare.js --test          (2 clips x all voices, quick check)
 //   node otkids-compare.js                 (all clips x all voices)
 // Options: --out <folder> (default audio-compare)  --delay <seconds> (default 10)
-//          --voices Kore,Sulafat,...  --style "text"  --model <name>
+//          --voices Kore,Sulafat,...  --style "text" (p- clips)  --style-gentle "text" (n- clips)  --model <name>
 const argv = process.argv.slice(2);
 const arg = (n, d) => { const i = argv.indexOf('--' + n); return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : d; };
 const KEYS = (process.env.GEMINI_API_KEY || '').split(/[\s,]+/).filter(Boolean);
@@ -19,10 +19,11 @@ const MODEL = arg('model', 'gemini-3.1-flash-tts-preview');
 const DELAY_MS = Math.max(0, Math.round(Number(arg('delay', '10')) * 1000));
 const OUT_DIR = arg('out', 'audio-compare');
 if (!/^[A-Za-z0-9_.\/-]+$/.test(OUT_DIR) || OUT_DIR.includes('..')) { console.error('Bad --out folder name'); process.exit(2); }
-const STYLE = arg('style', 'Speak in a warm, gentle, natural, and friendly voice, like a caring kindergarten teacher speaking to a young child. Sound calm and pleasantly cheerful, with subtle warmth and natural expression. Avoid exaggerated excitement, excessive enthusiasm, dramatic emphasis, or overly animated speech. Speak clearly at a relaxed, steady pace, with natural pauses. Make the child feel comfortable, encouraged, and at ease:');
+const STYLE = arg('style', 'Say warmly and cheerfully, clearly and not too fast, like a kind kindergarten teacher talking to a 5-year-old child:');
+const STYLE_GENTLE = arg('style-gentle', 'Speak in a warm, gentle, natural, and friendly voice, like a caring kindergarten teacher speaking to a young child. Sound calm and pleasantly cheerful, with subtle warmth and natural expression. Avoid exaggerated excitement, excessive enthusiasm, dramatic emphasis, or overly animated speech. Speak clearly at a relaxed, steady pace, with natural pauses. Make the child feel comfortable, encouraged, and at ease:');
 const VOICES = arg('voices', 'Kore,Sulafat,Leda,Aoede,Despina').split(',').map((s) => s.trim()).filter((s) => /^[A-Za-z]+$/.test(s));
 const VARIANTS = [{ id: 'kore', voice: 'Kore', style: '' }];
-VOICES.forEach((v) => { const id = v.toLowerCase() + (STYLE ? '-calm' : ''); if (!VARIANTS.some((x) => x.id === id)) VARIANTS.push({ id, voice: v, style: STYLE }); });
+VOICES.forEach((v) => { const id = v.toLowerCase() + ((STYLE || STYLE_GENTLE) ? '-warm' : ''); if (!VARIANTS.some((x) => x.id === id)) VARIANTS.push({ id, voice: v, style: STYLE, styleGentle: STYLE_GENTLE }); });
 const ALL_CLIPS = [{"name": "p-navon-meod", "text": "נכון מאוד!", "send": "נָכוֹן מְאוֹד!", "note": "positive: letter/picture games, after a correct answer"}, {"name": "p-yofi", "text": "יופי של דבר!", "send": "יוֹפִי שֶׁל דָּבָר!", "note": "positive: letter/picture games"}, {"name": "p-alufim", "text": "אלופים!", "send": "אַלּוּפִים!", "note": "positive: letter/picture games"}, {"name": "p-mamshichim", "text": "כל הכבוד! ממשיכים!", "send": "כָּל הַכָּבוֹד! מַמְשִׁיכִים!", "note": "positive: letter/picture games, moving on"}, {"name": "p-meule", "text": "מעולה!", "send": "מְעוּלֶּה!", "note": "positive: alphabet game"}, {"name": "p-yofi-tshuva", "text": "יופי של תשובה!", "send": "יֹפִי שֶׁל תְּשׁוּבָה!", "note": "positive: alphabet game"}, {"name": "p-wow-stars", "text": "וואו! איזה אלופים! השגתם 3 כוכבים מושלמים!", "send": "וואו! איזה אלופים! השגתם 3 כוכבים מושלמים!", "note": "positive: end screen, 3 stars (no nikud, as in code)"}, {"name": "n-karov", "text": "נסו שוב, אתם קרובים מאוד!", "send": "נַסּוּ שׁוּב, אַתֶּם קְרוֹבִים מְאוֹד!", "note": "gentle: listen-to-animal game, wrong answer"}, {"name": "n-kimat", "text": "כמעט! נסו שוב!", "send": "כִּמְעַט! נַסּוּ שׁוּב!", "note": "gentle: alphabet game, wrong answer"}, {"name": "n-kimat-count", "text": "כמעט! סופרים לאט, פריט אחר פריט, ולא שוכחים אף אחד", "send": "כמעט! סוֹפְרִים לְאַט, פְּרִיט אַחַר פְּרִיט, וְלֹא שׁוֹכְחִים אַף אֶחָד", "note": "gentle: numbers game, wrong answer + hint"}, {"name": "n-od-paam", "text": "עוד פעם! מסתכלים בקווים ובפינות, ונזכרים בשם שלה", "send": "עוֹד פַּעַם! מִסְתַּכְּלִים בַּקַּוִּים וּבַפִּנּוֹת, וְנִזְכָּרִים בְּשֵׁם שֶׁלָּהּ", "note": "gentle: shapes game, second wrong answer + hint"}, {"name": "n-waiting", "text": "אני מחכה לתשובה! כמה יש כאן?", "send": "אני מחכה לתשובה! כַּמָּה יֵשׁ כָּאן?", "note": "gentle nudge: numbers game, when the child is idle"}];
 const CLIPS = argv.includes('--test') ? ALL_CLIPS.filter((c) => ['p-navon-meod', 'n-karov'].includes(c.name)) : ALL_CLIPS;
 
@@ -141,7 +142,7 @@ async function main() {
       if (fs.existsSync(file) && fs.statSync(file).size > 44) { console.log('exists ' + tag + ' ' + v.id + '/' + c.name); skipped++; continue; }
       if (called && DELAY_MS > 0) await sleep(DELAY_MS);
       called = true;
-      const out = await synth(c.send, v.voice, v.style);
+      const out = await synth(c.send, v.voice, c.name.startsWith('n-') ? v.styleGentle : v.style);
       if (out.error) {
         console.error('ERR ' + tag + ' ' + v.id + '/' + c.name + ': ' + out.error);
         failed.push({ variant: v.id, name: c.name, error: out.error });

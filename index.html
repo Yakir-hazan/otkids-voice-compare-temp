@@ -125,8 +125,12 @@
           <p class="err" id="voiceErr" hidden></p>
         </div>
         <div class="field wide">
-          <label for="style">הנחיית הקראה לקולות האלה (אפשר להשאיר ריק)</label>
-          <input type="text" id="style" class="ltr" dir="ltr" value="Speak in a warm, gentle, natural, and friendly voice, like a caring kindergarten teacher speaking to a young child. Sound calm and pleasantly cheerful, with subtle warmth and natural expression. Avoid exaggerated excitement, excessive enthusiasm, dramatic emphasis, or overly animated speech. Speak clearly at a relaxed, steady pace, with natural pauses. Make the child feel comfortable, encouraged, and at ease:" autocomplete="off" spellcheck="false">
+          <label for="style">הנחיית הקראה לפידבקים חיוביים, קטעי p- (אפשר להשאיר ריק)</label>
+          <input type="text" id="style" class="ltr" dir="ltr" value="Say warmly and cheerfully, clearly and not too fast, like a kind kindergarten teacher talking to a 5-year-old child:" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="field wide">
+          <label for="styleGentle">הנחיית הקראה לפידבקים עדינים (טעות, רמז, המתנה), קטעי n- (אפשר להשאיר ריק)</label>
+          <input type="text" id="styleGentle" class="ltr" dir="ltr" value="Speak in a warm, gentle, natural, and friendly voice, like a caring kindergarten teacher speaking to a young child. Sound calm and pleasantly cheerful, with subtle warmth and natural expression. Avoid exaggerated excitement, excessive enthusiasm, dramatic emphasis, or overly animated speech. Speak clearly at a relaxed, steady pace, with natural pauses. Make the child feel comfortable, encouraged, and at ease:" autocomplete="off" spellcheck="false">
         </div>
         <div class="field">
           <label for="delay">השהיה בין בקשות (שניות)</label>
@@ -212,7 +216,7 @@ const KEYS = __KEYS__;
 const MODEL = __MODEL__;
 const DELAY_MS = __DELAY__;
 const OUT_DIR = __OUT__;
-const VARIANTS = __VARIANTS__;   // [{ id, voice, style }]
+const VARIANTS = __VARIANTS__;   // [{ id, voice, style, styleGentle }]
 const CLIPS = __CLIPS__;         // [{ name, text, send, note }]
 
 let keyIdx = 0;
@@ -330,7 +334,7 @@ async function main() {
       if (fs.existsSync(file) && fs.statSync(file).size > 44) { console.log('exists ' + tag + ' ' + v.id + '/' + c.name); skipped++; continue; }
       if (called && DELAY_MS > 0) await sleep(DELAY_MS);
       called = true;
-      const out = await synth(c.send, v.voice, v.style);
+      const out = await synth(c.send, v.voice, c.name.startsWith('n-') ? v.styleGentle : v.style);
       if (out.error) {
         console.error('ERR ' + tag + ' ' + v.id + '/' + c.name + ': ' + out.error);
         failed.push({ variant: v.id, name: c.name, error: out.error });
@@ -362,7 +366,8 @@ const $ = (id) => document.getElementById(id);
 const TPL = $('tpl').textContent.replace(/^\n/, '');
 const TEST_NAMES = ['p-navon-meod', 'n-karov'];
 const DEFAULT_FOLDER = 'audio-compare';
-const DEFAULT_STYLE = 'Speak in a warm, gentle, natural, and friendly voice, like a caring kindergarten teacher speaking to a young child. Sound calm and pleasantly cheerful, with subtle warmth and natural expression. Avoid exaggerated excitement, excessive enthusiasm, dramatic emphasis, or overly animated speech. Speak clearly at a relaxed, steady pace, with natural pauses. Make the child feel comfortable, encouraged, and at ease:';
+const DEFAULT_STYLE = 'Say warmly and cheerfully, clearly and not too fast, like a kind kindergarten teacher talking to a 5-year-old child:';
+const DEFAULT_STYLE_GENTLE = 'Speak in a warm, gentle, natural, and friendly voice, like a caring kindergarten teacher speaking to a young child. Sound calm and pleasantly cheerful, with subtle warmth and natural expression. Avoid exaggerated excitement, excessive enthusiasm, dramatic emphasis, or overly animated speech. Speak clearly at a relaxed, steady pace, with natural pauses. Make the child feel comfortable, encouraged, and at ease:';
 
 $('allText').textContent = 'כל ' + CLIPS.length + ' הקטעים';
 $('clipsSummary').textContent = CLIPS.length + ' הקטעים שייכנסו';
@@ -396,6 +401,7 @@ function build() {
   if (folderBad) $('folderErr').textContent = 'שם התיקייה יכול להכיל רק אותיות באנגלית, ספרות, קו תחתון, נקודה וקו נטוי. משתמש ב־' + DEFAULT_FOLDER + '.';
   const model = $('model').value.trim() || 'gemini-3.1-flash-tts-preview';
   const style = $('style').value.trim();
+  const styleGentle = $('styleGentle').value.trim();
 
   const names = $('voices').value.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
   const goodVoices = names.filter(function (s) { return /^[A-Za-z]+$/.test(s); });
@@ -404,8 +410,8 @@ function build() {
   if (badVoices) $('voiceErr').textContent = 'שם קול צריך להיות אותיות באנגלית בלבד. שמות לא תקינים לא נכללו.';
   const variants = [{ id: 'kore', voice: 'Kore', style: '' }];
   goodVoices.forEach(function (v) {
-    const id = v.toLowerCase() + (style ? '-calm' : '');
-    if (!variants.some(function (x) { return x.id === id; })) variants.push({ id: id, voice: v, style: style });
+    const id = v.toLowerCase() + ((style || styleGentle) ? '-warm' : '');
+    if (!variants.some(function (x) { return x.id === id; })) variants.push({ id: id, voice: v, style: style, styleGentle: styleGentle });
   });
 
   const clips = test ? CLIPS.filter(function (c) { return TEST_NAMES.indexOf(c.name) !== -1; }) : CLIPS;
@@ -437,6 +443,7 @@ function build() {
   if (/^[A-Za-z0-9_.:-]+$/.test(model) && model !== 'gemini-3.1-flash-tts-preview') parts.push("--model '" + model + "'");
   if (goodVoices.join(',') !== 'Kore,Sulafat,Leda,Aoede,Despina') parts.push("--voices '" + goodVoices.join(',') + "'");
   if (style !== DEFAULT_STYLE) parts.push("--style '" + (/['\\$`\n]/.test(style) ? '' : style) + "'");
+  if (styleGentle !== DEFAULT_STYLE_GENTLE) parts.push("--style-gentle '" + (/['\\$`\n]/.test(styleGentle) ? '' : styleGentle) + "'");
   const shortCmd = parts.join(' ');
   $('outShort').value = ready ? shortCmd : '';
   $('outShort').placeholder = 'הכנס מפתח למעלה, והפקודה תופיע כאן.';
@@ -462,7 +469,7 @@ async function copyCmd(outId, statusId) {
   $(statusId).textContent = done ? 'הועתק' : 'ההעתקה נחסמה. הטקסט מסומן, לחץ עליו והעתק ידנית.';
 }
 
-['keys', 'voices', 'style', 'delay', 'model', 'folder'].forEach(function (id) { $(id).addEventListener('input', build); });
+['keys', 'voices', 'style', 'styleGentle', 'delay', 'model', 'folder'].forEach(function (id) { $(id).addEventListener('input', build); });
 $('modeAll').addEventListener('change', build);
 $('modeTest').addEventListener('change', build);
 $('copy').addEventListener('click', function () { copyCmd('out', 'status'); });
