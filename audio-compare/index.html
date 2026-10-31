@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>השוואת קולות - אותקידס</title>
+<style>
+  :root { --bg:#fff; --fg:#1b1b1f; --muted:#6b6b76; --card:#f3f3f7; --line:#d9d9e2; --accent:#2f6bff; --ok:#1f9d55; --mid:#c98a00; --bad:#d33; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#16161a; --fg:#f1f1f4; --muted:#a0a0ad; --card:#212127; --line:#34343d; --accent:#6c97ff; --ok:#43c57c; --mid:#e3b341; --bad:#ff6b6b; } }
+  html { box-sizing:border-box; -webkit-text-size-adjust:100%; }
+  *, *::before, *::after { box-sizing:inherit; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.5 -apple-system, "Segoe UI", Arial, sans-serif;
+         padding:max(16px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom)); max-width:640px; margin-inline:auto; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  p.sub { color:var(--muted); margin:0 0 14px; font-size:14px; }
+  .card { background:var(--card); border-radius:14px; padding:12px 14px; margin-bottom:12px; }
+  .text { font-size:20px; font-weight:700; margin:0 0 4px; line-height:1.4; }
+  .note { font-size:12px; color:var(--muted); margin:0 0 6px; }
+  .row { border-top:1px solid var(--line); padding:8px 0; }
+  .top { display:flex; align-items:center; gap:10px; }
+  .play { width:48px; height:48px; border-radius:50%; border:0; background:var(--accent); color:#fff; font-size:18px; flex:none; }
+  .play.on { background:var(--ok); }
+  .vname { font-size:15px; font-weight:600; flex:1; }
+  .meta { font-size:12px; color:var(--muted); }
+  .rate { display:flex; gap:6px; margin-top:6px; }
+  .rate button { flex:1; border:1px solid var(--line); background:transparent; color:var(--fg); border-radius:10px; padding:8px 2px; font-size:13px; min-height:40px; }
+  .rate button[aria-pressed="true"][data-v="good"] { background:var(--ok); border-color:var(--ok); color:#fff; }
+  .rate button[aria-pressed="true"][data-v="mid"] { background:var(--mid); border-color:var(--mid); color:#fff; }
+  .rate button[aria-pressed="true"][data-v="bad"] { background:var(--bad); border-color:var(--bad); color:#fff; }
+  .err { color:var(--bad); font-size:13px; }
+  .actions { display:flex; gap:8px; margin:16px 0 8px; }
+  .chip { flex:1; border:1px solid var(--line); background:var(--card); color:var(--fg); border-radius:999px; padding:10px 16px; font-size:15px; min-height:44px; }
+  textarea { width:100%; min-height:200px; border-radius:10px; border:1px solid var(--line); background:var(--card); color:var(--fg); padding:10px; font:13px/1.5 ui-monospace, Menlo, monospace; direction:rtl; }
+</style>
+</head>
+<body>
+<h1>השוואת קולות: אותקידס</h1>
+<p class="sub" id="sub">טוען...</p>
+<div id="list"></div>
+<div class="actions">
+  <button class="chip" id="copy">העתק דוח</button>
+  <button class="chip" id="clear">נקה דירוגים</button>
+</div>
+<textarea id="report" readonly placeholder="הדוח יופיע כאן אחרי שתלחץ על העתק דוח"></textarea>
+
+<script>
+(function () {
+  var audio = new Audio(), playingBtn = null, ratings = {}, variants = [], clips = [], missing = {};
+  var $ = function (id) { return document.getElementById(id); };
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function stop() { audio.pause(); if (playingBtn) { playingBtn.classList.remove('on'); playingBtn.textContent = '▶'; playingBtn = null; } }
+  audio.addEventListener('ended', stop);
+  audio.addEventListener('error', function () { var k = playingBtn && playingBtn.dataset.key; stop(); if (k) { missing[k] = true; render(); } $('sub').textContent = 'הקובץ לא נמצא. בדוק שהעלית אותו לענף.'; });
+  function play(btn, src) {
+    if (playingBtn === btn) { stop(); return; }
+    stop(); audio.src = src; playingBtn = btn; btn.classList.add('on'); btn.textContent = '■';
+    var p = audio.play(); if (p && p.catch) p.catch(function () { stop(); });
+  }
+  function label(v) { return v.voice + (v.style ? ' + סגנון' : ' (בסיס, כמו היום)'); }
+
+  function render() {
+    stop(); var list = $('list'); list.textContent = '';
+    clips.forEach(function (c) {
+      var card = el('div', 'card');
+      card.appendChild(el('div', 'text', c.send));
+      if (c.note) card.appendChild(el('div', 'note', c.note));
+      variants.forEach(function (v) {
+        var key = v.id + '/' + c.name, r = el('div', 'row');
+        if (missing[key]) { r.appendChild(el('div', 'vname', label(v))); r.appendChild(el('div', 'err', 'הקובץ לא נמצא')); card.appendChild(r); return; }
+        var top = el('div', 'top'), b = el('button', 'play', '▶'); b.type = 'button'; b.dataset.key = key; b.setAttribute('aria-label', 'נגן ' + v.voice);
+        var src = v.id + '/' + c.name + '.wav';
+        b.addEventListener('click', function () { play(b, src); });
+        top.appendChild(b); top.appendChild(el('div', 'vname', label(v)));
+        r.appendChild(top);
+        var rate = el('div', 'rate');
+        [['good', '✓ מצוין'], ['mid', '~ בסדר'], ['bad', '✗ לא טוב']].forEach(function (o) {
+          var x = el('button', null, o[1]); x.type = 'button'; x.dataset.v = o[0];
+          x.setAttribute('aria-pressed', ratings[key] === o[0] ? 'true' : 'false');
+          x.addEventListener('click', function () {
+            ratings[key] = ratings[key] === o[0] ? undefined : o[0];
+            Array.prototype.forEach.call(rate.children, function (cc) { cc.setAttribute('aria-pressed', ratings[key] === cc.dataset.v ? 'true' : 'false'); });
+          });
+          rate.appendChild(x);
+        });
+        r.appendChild(rate); card.appendChild(r);
+      });
+      list.appendChild(card);
+    });
+  }
+
+  function report() {
+    var L = ['דוח השוואת קולות אותקידס'];
+    clips.forEach(function (c) {
+      var parts = variants.map(function (v) {
+        var r = ratings[v.id + '/' + c.name]; var t = r === 'good' ? 'מצוין' : r === 'mid' ? 'בסדר' : r === 'bad' ? 'לא טוב' : '-';
+        return v.id + '=' + t;
+      });
+      L.push(c.name + ': ' + parts.join(' | '));
+    });
+    return L.join('\n');
+  }
+  $('copy').addEventListener('click', function () {
+    var t = report(), ta = $('report'); ta.value = t; ta.select();
+    var done = function () { $('sub').textContent = 'הדוח הועתק. הדבק אותו בצ׳אט.'; };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, function () { try { document.execCommand('copy'); done(); } catch (e) {} });
+    else { try { document.execCommand('copy'); done(); } catch (e) {} }
+  });
+  $('clear').addEventListener('click', function () { ratings = {}; render(); $('report').value = ''; });
+
+  fetch('variants.json', { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(function (m) {
+    variants = m.variants || []; clips = m.clips || [];
+    if (!variants.length || !clips.length) throw new Error('empty');
+    $('sub').textContent = variants.length + ' קולות · ' + clips.length + ' קטעים: מילים ומשפטים אמיתיים מהמשחקים';
+    render();
+  }).catch(function () { $('sub').textContent = 'עדיין אין קבצים. הפק אותם עם הכלי והעלה את התיקייה לענף.'; });
+})();
+</script>
+</body>
+</html>

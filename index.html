@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>השוואת קולות לאותקידס</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F2F5F9;
+    --panel: #FFFFFF;
+    --ink: #16202E;
+    --muted: #5B6778;
+    --line: #D5DCE6;
+    --accent: #0B6F7A;
+    --accent-ink: #FFFFFF;
+    --warn-bg: #FFF1D6;
+    --warn-ink: #6B4300;
+    --code-bg: #0F1722;
+    --code-ink: #D8E3F2;
+    --danger: #B3261E;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0E141D; --panel: #17202C; --ink: #E7EDF5; --muted: #98A4B5; --line: #2B3646;
+      --accent: #3FB6C3; --accent-ink: #06232A; --warn-bg: #3A2D12; --warn-ink: #F3D9A2;
+      --code-bg: #0A0F16; --code-ink: #D8E3F2; --danger: #FF8A80;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0E141D; --panel: #17202C; --ink: #E7EDF5; --muted: #98A4B5; --line: #2B3646;
+    --accent: #3FB6C3; --accent-ink: #06232A; --warn-bg: #3A2D12; --warn-ink: #F3D9A2;
+    --code-bg: #0A0F16; --code-ink: #D8E3F2; --danger: #FF8A80;
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: 'Rubik', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+    font-size: 16px; line-height: 1.55;
+  }
+  main { max-width: 640px; margin: 0 auto; padding: 22px 16px 48px; }
+  h1 { font-size: 24px; line-height: 1.2; margin: 0 0 6px; font-weight: 700; }
+  .lead { margin: 0 0 22px; color: var(--muted); }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+  label, .label { display: block; font-weight: 500; margin-bottom: 6px; }
+  .hint { margin: 6px 0 0; font-size: 14px; color: var(--muted); }
+  textarea, input[type="text"], input[type="number"] {
+    width: 100%; font: inherit; color: var(--ink); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
+  }
+  textarea:focus-visible, input:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 3px solid var(--accent); outline-offset: 2px;
+  }
+  .ltr { direction: ltr; text-align: left; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 14px; }
+  #keys { min-height: 88px; resize: vertical; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .seg input { position: absolute; opacity: 0; pointer-events: none; }
+  .seg label {
+    margin: 0; text-align: center; padding: 11px 8px; border: 1px solid var(--line);
+    border-radius: 10px; cursor: pointer; background: var(--bg); font-weight: 500;
+  }
+  .seg input:checked + label { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .seg input:focus-visible + label { outline: 3px solid var(--accent); outline-offset: 2px; }
+  details { margin: 0; }
+  summary { cursor: pointer; font-weight: 500; padding: 2px 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+  .grid2 .wide { grid-column: 1 / -1; }
+  .field label { font-weight: 400; font-size: 14px; color: var(--muted); }
+  #out { direction: ltr; text-align: left; min-height: 200px; resize: vertical; background: var(--code-bg); color: var(--code-ink); border-color: transparent; font-size: 12.5px; line-height: 1.45; white-space: pre; overflow: auto; }
+  .btn {
+    width: 100%; margin-top: 12px; font: inherit; font-weight: 700; padding: 14px 16px;
+    border: 0; border-radius: 12px; background: var(--accent); color: var(--accent-ink); cursor: pointer;
+  }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .meta { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; color: var(--muted); margin-top: 8px; }
+  .warn { background: var(--warn-bg); color: var(--warn-ink); border-radius: 10px; padding: 10px 12px; font-size: 14px; margin-top: 12px; }
+  .err { color: var(--danger); font-size: 14px; margin: 6px 0 0; }
+  #status { min-height: 1.4em; font-weight: 500; }
+  .words { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 6px; margin-top: 12px; }
+  .w { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 14px; display: flex; justify-content: space-between; gap: 6px; }
+  .w code { direction: ltr; color: var(--muted); font-size: 12px; }
+  .steps { margin: 0; padding-inline-start: 20px; }
+  .steps li { margin-bottom: 4px; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>השוואת קולות לאותקידס</h1>
+  <p class="lead">מכניס את המפתח, ומקבל פקודה להדבקה בטרמינל באייפון. הפקודה מפיקה את אותם מילים ומשפטים מהמשחקים בכמה קולות, כדי להשוות ביניהם.</p>
+
+  <section>
+    <label for="keys">מפתח Gemini</label>
+    <textarea id="keys" class="ltr" dir="ltr" rows="3" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="הדבק כאן מפתח"></textarea>
+    <p class="hint">אפשר כמה מפתחות, אחד בכל שורה. כשמפתח מגיע למכסה או נדחה, הסקריפט עובר לבא אחריו.</p>
+    <p class="hint">המפתח לא נשמר בשום מקום, והדף לא שולח אותו לשום מקום.</p>
+    <p class="err" id="keyErr" hidden></p>
+  </section>
+
+  <section>
+    <div class="label" id="modeLabel">מה להפיק</div>
+    <div class="seg" role="radiogroup" aria-labelledby="modeLabel">
+      <input type="radio" name="mode" id="modeAll" value="all" checked>
+      <label for="modeAll"><span id="allText">כל הקטעים</span></label>
+      <input type="radio" name="mode" id="modeTest" value="test">
+      <label for="modeTest">בדיקה: 2 קטעים</label>
+    </div>
+    <p class="hint" id="countHint"></p>
+    <p class="hint">קבצים שכבר קיימים בתיקייה מדולגים, אז אפשר להריץ שוב אחרי כשל.</p>
+  </section>
+
+  <section>
+    <details>
+      <summary>הגדרות</summary>
+      <div class="grid2">
+        <div class="field wide">
+          <label for="voices">קולות להשוואה (מופרדים בפסיק). בנוסף תמיד נוצר Kore בלי סגנון, כמו היום</label>
+          <input type="text" id="voices" class="ltr" dir="ltr" value="Kore,Sulafat,Leda,Aoede,Despina" autocomplete="off" autocapitalize="none" spellcheck="false">
+          <p class="err" id="voiceErr" hidden></p>
+        </div>
+        <div class="field wide">
+          <label for="style">הנחיית הקראה לקולות האלה (אפשר להשאיר ריק)</label>
+          <input type="text" id="style" class="ltr" dir="ltr" value="Say warmly and cheerfully, clearly and not too fast, like a kind kindergarten teacher talking to a 5-year-old child:" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="field">
+          <label for="delay">השהיה בין בקשות (שניות)</label>
+          <input type="number" id="delay" class="ltr" dir="ltr" value="10" min="0" step="1" inputmode="numeric">
+        </div>
+        <div class="field">
+          <label for="model">מודל</label>
+          <input type="text" id="model" class="ltr" dir="ltr" value="gemini-3.1-flash-tts-preview" autocomplete="off" autocapitalize="none" spellcheck="false">
+        </div>
+        <div class="field wide">
+          <label for="folder">תיקיית פלט (יחסית לתיקייה שבה אתה עומד בטרמינל)</label>
+          <input type="text" id="folder" class="ltr" dir="ltr" value="audio-compare" autocomplete="off" autocapitalize="none" spellcheck="false">
+          <p class="err" id="folderErr" hidden></p>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <section>
+    <label for="outCd">פקודה 1: ניווט לתיקיית הפרויקט (פעם אחת, לפני ההרצה)</label>
+    <textarea id="outCd" class="ltr" dir="ltr" readonly rows="4" spellcheck="false" aria-describedby="statusCd"></textarea>
+    <div class="meta"><span></span><span id="statusCd" role="status" aria-live="polite"></span></div>
+    <button class="btn" id="copyCd" type="button">העתק את פקודת הניווט</button>
+    <p class="hint">אחרי ההדבקה צריך להיות מודפס נתיב שמסתיים ב־<code dir="ltr">.../otkids-main</code>, ולא <code dir="ltr">.Trash</code>.</p>
+  </section>
+
+  <section>
+    <label for="outDl">פקודה 2: הורדת הסקריפט המעודכן (גם היא פעם אחת)</label>
+    <textarea id="outDl" class="ltr" dir="ltr" readonly rows="4" spellcheck="false" aria-describedby="statusDl"></textarea>
+    <div class="meta"><span></span><span id="statusDl" role="status" aria-live="polite"></span></div>
+    <button class="btn" id="copyDl" type="button">העתק את פקודת ההורדה</button>
+    <p class="hint">הסקריפט נשמר ב־<code dir="ltr">$HOME/otkids-compare.js</code> ולא מכיל מפתח.</p>
+  </section>
+
+  <section>
+    <label for="outShort">פקודה 3: הרצה (כוללת את המפתח)</label>
+    <textarea id="outShort" class="ltr" dir="ltr" readonly rows="4" spellcheck="false" aria-describedby="statusShort"></textarea>
+    <div class="meta"><span></span><span id="statusShort" role="status" aria-live="polite"></span></div>
+    <button class="btn" id="copyShort" type="button" disabled>העתק את פקודת ההרצה</button>
+    <div class="warn">הפקודה כוללת את המפתח. אל תעלה אותה לגיט ואל תשלח אותה הלאה.</div>
+  </section>
+
+  <section>
+    <details>
+      <summary>חלופה: פקודה אחת ארוכה (מחליפה את פקודות 2 ו־3)</summary>
+    <label for="out">הפקודה להדבקה בטרמינל</label>
+    <textarea id="out" readonly rows="10" spellcheck="false" aria-describedby="status"></textarea>
+    <div class="meta"><span id="size"></span><span id="status" role="status" aria-live="polite"></span></div>
+    <button class="btn" id="copy" type="button" disabled>העתק את הפקודה</button>
+    <div class="warn">הפקודה כוללת את המפתח. אל תעלה אותה לגיט ואל תשלח אותה הלאה.</div>
+    </details>
+  </section>
+
+  <section>
+    <div class="label">אחרי ההדבקה</div>
+    <ol class="steps">
+      <li>מדביקים בטרמינל את פקודה 1 ומוודאים שהנתיב המודפס מסתיים ב־<code dir="ltr">otkids-main</code>.</li>
+      <li>מדביקים את פקודה 2 (הורדת הסקריפט), ואחר כך את פקודה 3 (הרצה). קודם כדאי "בדיקה: 2 קטעים".</li>
+      <li>הקבצים נשמרים בתיקייה <code dir="ltr">audio-compare</code> בתוך <code dir="ltr">otkids-main</code>, כ־<code dir="ltr">&lt;קול&gt;/&lt;קטע&gt;.wav</code>, ובנוסף <code dir="ltr">variants.json</code>.</li>
+      <li>מעלים את תוכן התיקייה <code dir="ltr">audio-compare</code> (הקובץ <code dir="ltr">variants.json</code> ו־6 תיקיות הקולות) לריפו <code dir="ltr">otkids-voice-compare-temp</code>, לתוך התיקייה <code dir="ltr">audio-compare</code>.</li>
+      <li>פותחים את <a href="audio-compare/">דף ההאזנה</a>, מנגנים ומדרגים, ולוחצים "העתק דוח".</li>
+      <li>אם משהו נכשל, מריצים שוב את פקודה 3 והסקריפט ממשיך מאיפה שעצר.</li>
+    </ol>
+  </section>
+
+  <section>
+    <details>
+      <summary id="clipsSummary">הקטעים שייכנסו</summary>
+      <div id="clips"></div>
+    </details>
+  </section>
+</main>
+
+<script type="text/plain" id="tpl">
+// otkids-compare.js: the same clips (words + real game sentences) in several Gemini voices, to compare them.
+// Node 16+, no dependencies. Existing files are skipped, so it is safe to run again after a failure.
+'use strict';
+const https = require('https');
+const fs = require('fs');
+const path = require('path');
+
+const KEYS = __KEYS__;
+const MODEL = __MODEL__;
+const DELAY_MS = __DELAY__;
+const OUT_DIR = __OUT__;
+const VARIANTS = __VARIANTS__;   // [{ id, voice, style }]
+const CLIPS = __CLIPS__;         // [{ name, text, send, note }]
+
+let keyIdx = 0;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function request(text, voice, style) {
+  return new Promise((resolve, reject) => {
+    const body = JSON.stringify({
+      contents: [{ parts: [{ text: style ? style + ' ' + text : text }] }],
+      generationConfig: {
+        responseModalities: ['AUDIO'],
+        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } }
+      }
+    });
+    const req = https.request({
+      hostname: 'generativelanguage.googleapis.com',
+      path: '/v1beta/models/' + encodeURIComponent(MODEL) + ':generateContent',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(body),
+        'x-goog-api-key': KEYS[keyIdx]
+      }
+    }, (res) => {
+      let data = '';
+      res.setEncoding('utf8');
+      res.on('data', (c) => { data += c; });
+      res.on('end', () => resolve({ status: res.statusCode, body: data }));
+    });
+    req.on('error', reject);
+    req.setTimeout(60000, () => req.destroy(new Error('timeout')));
+    req.write(body);
+    req.end();
+  });
+}
+
+function retryDelay(body, attempt) {
+  const m = /"retryDelay"\s*:\s*"(\d+(?:\.\d+)?)s"/.exec(body || '');
+  return m ? Math.ceil(Number(m[1]) * 1000) + 1000 : 15000 * attempt;
+}
+
+async function synth(text, voice, style) {
+  let last = 'unknown error';
+  let switches = 0;
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    let wait = 0;
+    try {
+      const r = await request(text, voice, style);
+      if (r.status === 200) {
+        const j = JSON.parse(r.body);
+        const parts = (j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts) || [];
+        const p = parts.find((x) => x.inlineData && x.inlineData.data);
+        if (p) {
+          const m = /rate=(\d+)/.exec(p.inlineData.mimeType || '');
+          return { pcm: Buffer.from(p.inlineData.data, 'base64'), rate: m ? Number(m[1]) : 24000 };
+        }
+        last = 'no audio in response';
+        wait = 5000 * attempt;
+      } else {
+        let msg = r.body.slice(0, 200);
+        try { msg = JSON.parse(r.body).error.message || msg; } catch (e) { /* keep raw */ }
+        last = 'HTTP ' + r.status + ': ' + msg;
+        const more = KEYS.length > 1 && switches < KEYS.length - 1;
+        if ((r.status === 429 || r.status === 401 || r.status === 403) && more) {
+          switches++;
+          keyIdx = (keyIdx + 1) % KEYS.length;
+          attempt--;
+          console.log('    switching to key ' + (keyIdx + 1) + ' of ' + KEYS.length + ' (' + last.slice(0, 70) + ')');
+          continue;
+        }
+        if (r.status === 429 || r.status >= 500) wait = retryDelay(r.body, attempt);
+        else return { error: last, fatal: r.status !== 400 };
+      }
+    } catch (e) {
+      last = 'network: ' + e.message;
+      wait = 5000 * attempt;
+    }
+    if (attempt < 4) {
+      console.log('    attempt ' + attempt + ' failed (' + last.slice(0, 80) + '), retrying in ' + Math.round(wait / 1000) + 's');
+      await sleep(wait);
+    }
+  }
+  return { error: last, fatal: false };
+}
+
+function wav(pcm, rate) {
+  const h = Buffer.alloc(44);
+  h.write('RIFF', 0); h.writeUInt32LE(pcm.length + 36, 4); h.write('WAVE', 8); h.write('fmt ', 12);
+  h.writeUInt32LE(16, 16); h.writeUInt16LE(1, 20); h.writeUInt16LE(1, 22);
+  h.writeUInt32LE(rate, 24); h.writeUInt32LE(rate * 2, 28); h.writeUInt16LE(2, 32); h.writeUInt16LE(16, 34);
+  h.write('data', 36); h.writeUInt32LE(pcm.length, 40);
+  return Buffer.concat([h, pcm]);
+}
+
+async function main() {
+  if (!KEYS.length) { console.error('No API key'); return 2; }
+  fs.mkdirSync(OUT_DIR, { recursive: true });
+  VARIANTS.forEach((v) => fs.mkdirSync(path.join(OUT_DIR, v.id), { recursive: true }));
+  fs.writeFileSync(path.join(OUT_DIR, 'variants.json'), JSON.stringify({ model: MODEL, variants: VARIANTS, clips: CLIPS }, null, 2));
+  const total = CLIPS.length * VARIANTS.length;
+  console.log('clips: ' + CLIPS.length + ' | variants: ' + VARIANTS.length + ' | total files: ' + total + ' | model: ' + MODEL + ' | keys: ' + KEYS.length);
+  console.log('output: ' + path.resolve(OUT_DIR) + '\n');
+  let ok = 0;
+  let skipped = 0;
+  let n = 0;
+  const failed = [];
+  let called = false;
+  // Clips in the outer loop: if the run stops early, every voice already has the first clips to compare.
+  outer:
+  for (const c of CLIPS) {
+    for (const v of VARIANTS) {
+      n++;
+      const tag = '[' + n + '/' + total + ']';
+      const file = path.join(OUT_DIR, v.id, c.name + '.wav');
+      if (fs.existsSync(file) && fs.statSync(file).size > 44) { console.log('exists ' + tag + ' ' + v.id + '/' + c.name); skipped++; continue; }
+      if (called && DELAY_MS > 0) await sleep(DELAY_MS);
+      called = true;
+      const out = await synth(c.send, v.voice, v.style);
+      if (out.error) {
+        console.error('ERR ' + tag + ' ' + v.id + '/' + c.name + ': ' + out.error);
+        failed.push({ variant: v.id, name: c.name, error: out.error });
+        if (out.fatal) { console.error('This will not fix itself by retrying. Stopping. Check the key / model name / voice name and run again.'); break outer; }
+        continue;
+      }
+      fs.writeFileSync(file + '.part', wav(out.pcm, out.rate));
+      fs.renameSync(file + '.part', file);
+      console.log('OK ' + tag + ' ' + v.id + '/' + c.name);
+      ok++;
+    }
+  }
+  console.log('\nok: ' + ok + ' | skipped: ' + skipped + ' | failed: ' + failed.length);
+  if (failed.length) {
+    fs.writeFileSync(path.join(OUT_DIR, '_errors.json'), JSON.stringify(failed, null, 2));
+    console.log('errors saved to ' + path.join(OUT_DIR, '_errors.json') + ' (run again to retry)');
+  }
+  console.log('done: ' + path.resolve(OUT_DIR));
+  return failed.length ? 1 : 0;
+}
+
+main().then((c) => process.exit(c)).catch((e) => { console.error('Fatal: ' + e.message); process.exit(3); });
+</script>
+
+<script>
+// Clips: words from js/content/bank.js, and sentences taken from the games' code (numbers, days, shapes, rhyme).
+const CLIPS = [{"name": "w-motos", "text": "מטוס", "send": "מטוס", "note": "word, as in bank.js"}, {"name": "w-melafefon", "text": "מלפפון", "send": "מלפפון", "note": "word, as in bank.js"}, {"name": "w-shokolad", "text": "שוקולד", "send": "שוקולד", "note": "word, as in bank.js"}, {"name": "w-banana", "text": "בננה", "send": "בננה", "note": "word, as in bank.js"}, {"name": "s-hello", "text": "שלום חברים! בואו נלמד לספור מאחת עד עשר", "send": "שלום חברים! בואו נלמד לספור מאחת עד עשר", "note": "numbers game, mascot greeting (no nikud, as in code)"}, {"name": "s-correct", "text": "נכון! יש כאן חמש", "send": "נכון! יֵשׁ כָּאן חָמֵשׁ", "note": "numbers game, after a correct answer"}, {"name": "s-almost", "text": "כמעט! סופרים לאט, פריט אחר פריט, ולא שוכחים אף אחד", "send": "כמעט! סוֹפְרִים לְאַט, פְּרִיט אַחַר פְּרִיט, וְלֹא שׁוֹכְחִים אַף אֶחָד", "note": "numbers game, hint after a wrong answer"}, {"name": "s-waiting", "text": "אני מחכה לתשובה! כמה יש כאן?", "send": "אני מחכה לתשובה! כַּמָּה יֵשׁ כָּאן?", "note": "numbers game, idle nudge"}, {"name": "s-add", "text": "כמה זה שלוש ועוד ארבע?", "send": "כַּמָּה זֶה שָׁלוֹשׁ וְעוֹד אַרְבַּע?", "note": "numbers game, addition question"}, {"name": "s-days", "text": "יום שישי. היום השישי בשבוע. מתכוננים לשבת המתוקה עם חלה ונרות!", "send": "יוֹם שִׁשִּׁי. הַיּוֹם הַשִּׁשִּׁי בַּשָּׁבוּעַ. מִתְכּוֹנְנִים לְשַׁבָּת הַמְּתוּקָה עִם חַלָּה וְנֵרוֹת!", "note": "days game, long sentence"}, {"name": "s-shape", "text": "משולש. יש לו שלוש צלעות ושלוש פינות", "send": "מְשֻׁלָּשׁ. יֵשׁ לוֹ שָׁלוֹשׁ צְלָעוֹת וְשָׁלוֹשׁ פִּנּוֹת", "note": "shapes game, shape fact"}, {"name": "s-door", "text": "מה הצורה של הדלת?", "send": "מָה הַצּוּרָה שֶׁל הַדֶּלֶת?", "note": "shapes game, question"}, {"name": "s-great", "text": "כל הכבוד! עכשיו נשחק במי מתחרז!", "send": "כל הכבוד! עכשיו נשחק במי מתחרז!", "note": "rhyme game (no nikud, as in code)"}];
+const $ = (id) => document.getElementById(id);
+const TPL = $('tpl').textContent.replace(/^\n/, '');
+const TEST_NAMES = ['w-motos', 's-correct'];
+const DEFAULT_FOLDER = 'audio-compare';
+const DEFAULT_STYLE = 'Say warmly and cheerfully, clearly and not too fast, like a kind kindergarten teacher talking to a 5-year-old child:';
+
+$('allText').textContent = 'כל ' + CLIPS.length + ' הקטעים';
+$('clipsSummary').textContent = CLIPS.length + ' הקטעים שייכנסו';
+$('clips').innerHTML = CLIPS.map(function (c) {
+  return '<div class="w" style="margin-top:6px"><span>' + c.send + '</span><code>' + c.name + '</code></div>';
+}).join('');
+
+function parseKeys(raw) {
+  const keys = [];
+  let bad = 0;
+  raw.split('\n').map(function (s) { return s.trim(); }).filter(Boolean).forEach(function (k) {
+    if (/\s/.test(k) || /["'`\\$]/.test(k)) { bad++; return; }
+    if (keys.indexOf(k) === -1) keys.push(k);
+  });
+  return { keys: keys, bad: bad };
+}
+
+function build() {
+  const parsed = parseKeys($('keys').value);
+  const err = $('keyErr');
+  if (parsed.bad) { err.hidden = false; err.textContent = 'יש שורה שלא נראית כמו מפתח (רווח או מרכאות בתוכה), והיא לא נכללה.'; }
+  else err.hidden = true;
+
+  const test = $('modeTest').checked;
+  const delaySec = Number($('delay').value);
+  const delayMs = Math.max(0, Math.round((isFinite(delaySec) ? delaySec : 10) * 1000));
+  let folder = $('folder').value.trim() || DEFAULT_FOLDER;
+  const folderBad = !/^[A-Za-z0-9_.\/-]+$/.test(folder) || folder.indexOf('..') !== -1;
+  if (folderBad) folder = DEFAULT_FOLDER;
+  $('folderErr').hidden = !folderBad;
+  if (folderBad) $('folderErr').textContent = 'שם התיקייה יכול להכיל רק אותיות באנגלית, ספרות, קו תחתון, נקודה וקו נטוי. משתמש ב־' + DEFAULT_FOLDER + '.';
+  const model = $('model').value.trim() || 'gemini-3.1-flash-tts-preview';
+  const style = $('style').value.trim();
+
+  const names = $('voices').value.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+  const goodVoices = names.filter(function (s) { return /^[A-Za-z]+$/.test(s); });
+  const badVoices = names.length - goodVoices.length;
+  $('voiceErr').hidden = !badVoices;
+  if (badVoices) $('voiceErr').textContent = 'שם קול צריך להיות אותיות באנגלית בלבד. שמות לא תקינים לא נכללו.';
+  const variants = [{ id: 'kore', voice: 'Kore', style: '' }];
+  goodVoices.forEach(function (v) {
+    const id = v.toLowerCase() + (style ? '-warm' : '');
+    if (!variants.some(function (x) { return x.id === id; })) variants.push({ id: id, voice: v, style: style });
+  });
+
+  const clips = test ? CLIPS.filter(function (c) { return TEST_NAMES.indexOf(c.name) !== -1; }) : CLIPS;
+  $('countHint').textContent = clips.length + ' קטעים × ' + variants.length + ' קולות = ' + (clips.length * variants.length) + ' קבצים. עם השהיה של ' + Math.round(delayMs / 1000) + ' שניות זה בערך ' + Math.ceil(clips.length * variants.length * (delayMs / 1000 + 4) / 60) + ' דקות.';
+
+  const map = {
+    __KEYS__: JSON.stringify(parsed.keys),
+    __MODEL__: JSON.stringify(model),
+    __DELAY__: String(delayMs),
+    __OUT__: JSON.stringify(folder),
+    __VARIANTS__: JSON.stringify(variants),
+    __CLIPS__: JSON.stringify(clips)
+  };
+  let script = TPL;
+  Object.keys(map).forEach(function (k) { script = script.split(k).join(map[k]); });
+
+  const cmd = "cat > \"$HOME/otkids-compare.js\" <<'OTKIDS_EOF'\n" + script.replace(/\n+$/, '') + "\nOTKIDS_EOF\nnode \"$HOME/otkids-compare.js\"\n";
+  const ready = parsed.keys.length > 0 && variants.length > 0;
+  $('out').value = ready ? cmd : '';
+  $('out').placeholder = 'הכנס מפתח למעלה, והפקודה תופיע כאן.';
+  $('copy').disabled = !ready;
+  $('size').innerHTML = ready ? cmd.split('\n').length + ' שורות, <bdi dir="ltr">' + (new Blob([cmd]).size / 1024).toFixed(1) + ' KB</bdi>' : '';
+  $('status').textContent = '';
+
+  const parts = ["GEMINI_API_KEY='" + parsed.keys.join(',') + "'", 'node "$HOME/otkids-compare.js"'];
+  if (test) parts.push('--test');
+  if (delayMs !== 10000) parts.push('--delay ' + (delayMs / 1000));
+  if (folder !== DEFAULT_FOLDER) parts.push("--out '" + folder + "'");
+  if (/^[A-Za-z0-9_.:-]+$/.test(model) && model !== 'gemini-3.1-flash-tts-preview') parts.push("--model '" + model + "'");
+  if (goodVoices.join(',') !== 'Kore,Sulafat,Leda,Aoede,Despina') parts.push("--voices '" + goodVoices.join(',') + "'");
+  if (style !== DEFAULT_STYLE) parts.push("--style '" + (/['\\$`\n]/.test(style) ? '' : style) + "'");
+  const shortCmd = parts.join(' ');
+  $('outShort').value = ready ? shortCmd : '';
+  $('outShort').placeholder = 'הכנס מפתח למעלה, והפקודה תופיע כאן.';
+  $('copyShort').disabled = !ready;
+  $('statusShort').textContent = '';
+}
+
+async function copyCmd(outId, statusId) {
+  outId = outId || 'out'; statusId = statusId || 'status';
+  const ta = $(outId);
+  const text = ta.value;
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+    $(statusId).textContent = 'הועתק';
+    return;
+  } catch (e) { /* fall through */ }
+  ta.focus();
+  ta.select();
+  ta.setSelectionRange(0, text.length);
+  let done = false;
+  try { done = document.execCommand('copy'); } catch (e) { done = false; }
+  $(statusId).textContent = done ? 'הועתק' : 'ההעתקה נחסמה. הטקסט מסומן, לחץ עליו והעתק ידנית.';
+}
+
+['keys', 'voices', 'style', 'delay', 'model', 'folder'].forEach(function (id) { $(id).addEventListener('input', build); });
+$('modeAll').addEventListener('change', build);
+$('modeTest').addEventListener('change', build);
+$('copy').addEventListener('click', function () { copyCmd('out', 'status'); });
+const CD_CMD = 'cd /var/mobile/Containers/Shared/AppGroup/AD3A26B6-23EE-48B9-96E0-8F14661D28B4/File\\ Provider\\ Storage/*/otkids-main && pwd -P';
+const DL_CMD = 'curl -o "$HOME/otkids-compare.js" https://raw.githubusercontent.com/Yakir-hazan/otkids-voice-compare-temp/main/otkids-compare.js';
+$('outCd').value = CD_CMD;
+$('outDl').value = DL_CMD;
+$('copyCd').addEventListener('click', function () { copyCmd('outCd', 'statusCd'); });
+$('copyDl').addEventListener('click', function () { copyCmd('outDl', 'statusDl'); });
+$('copyShort').addEventListener('click', function () { copyCmd('outShort', 'statusShort'); });
+build();
+</script>
+</body>
+</html>
