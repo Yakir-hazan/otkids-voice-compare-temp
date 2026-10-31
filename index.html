@@ -125,8 +125,8 @@
           <p class="err" id="voiceErr" hidden></p>
         </div>
         <div class="field wide">
-          <label for="style">הנחיית הקראה (הטונציה הקבועה, אפשר להשאיר ריק)</label>
-          <input type="text" id="style" class="ltr" dir="ltr" value="Speak in a warm, gentle, natural, and friendly voice, like a caring kindergarten teacher speaking to a young child. Sound calm and pleasantly cheerful, with subtle warmth and natural expression. Avoid exaggerated excitement, excessive enthusiasm, dramatic emphasis, or overly animated speech. Speak clearly at a relaxed, steady pace, with natural pauses. Make the child feel comfortable, encouraged, and at ease:" autocomplete="off" spellcheck="false">
+          <label for="style">הנחיית הקראה (טונציה): ריק = בלי טונציה</label>
+          <input type="text" id="style" class="ltr" dir="ltr" value="" autocomplete="off" spellcheck="false">
         </div>
         <div class="field wide">
           <label for="only">קבוצות להפיק (ריק = הכל, מופרדות בפסיק)</label>
@@ -402,7 +402,7 @@ const $ = (id) => document.getElementById(id);
 const TPL = $('tpl').textContent.replace(/^\n/, '');
 const TEST_NAMES = ['p-navon-meod', 'n-karov'];
 const DEFAULT_FOLDER = 'audio-compare';
-const DEFAULT_STYLE = 'Speak in a warm, gentle, natural, and friendly voice, like a caring kindergarten teacher speaking to a young child. Sound calm and pleasantly cheerful, with subtle warmth and natural expression. Avoid exaggerated excitement, excessive enthusiasm, dramatic emphasis, or overly animated speech. Speak clearly at a relaxed, steady pace, with natural pauses. Make the child feel comfortable, encouraged, and at ease:';
+const DEFAULT_STYLE = '';
 
 let CLIPS = CORE;
 const GROUP_NAMES = { p: 'חיוביים (בסיס)', n: 'עדינים (בסיס)', num: 'משחק המספרים', day: 'משחק ימי השבוע', abc: 'משחק האותיות', shp: 'משחק הצורות', rhy: 'משחק החרוזים', wrl: 'כותבים אותיות' };
@@ -418,11 +418,6 @@ function renderClips() {
   }).join('');
 }
 renderClips();
-fetch('clips.json', { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(function (app) {
-  CLIPS = CORE.concat(app);
-  renderClips();
-  build();
-}).catch(function () { /* the page still works with the core clips */ });
 
 function parseKeys(raw) {
   const keys = [];
@@ -475,7 +470,7 @@ function build() {
     __VARIANTS__: JSON.stringify(variants),
     __CLIPS__: JSON.stringify(coreTpl),
     __ONLY__: JSON.stringify(test ? [] : onlyGroups),
-    __APP__: test ? 'false' : 'true'
+    __APP__: 'false'
   };
   let script = TPL;
   Object.keys(map).forEach(function (k) { script = script.split(k).join(map[k]); });
