@@ -11,6 +11,7 @@ const path = require('path');
 //   node otkids-compare.js --test          (2 clips x all voices, quick check)
 //   node otkids-compare.js                 (all clips x all voices)
 // Options: --out <folder> (default audio-compare)  --delay <seconds> (default 10)
+//          --only num,day (groups: p n num day abc shp rhy wrl; default all)  --no-app (core clips only)
 //          --voices Kore (default; add more only to compare)  --style "text"  --model <name>
 const argv = process.argv.slice(2);
 const arg = (n, d) => { const i = argv.indexOf('--' + n); return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : d; };
@@ -23,8 +24,43 @@ const STYLE = arg('style', 'Speak in a warm, gentle, natural, and friendly voice
 const VOICES = arg('voices', 'Kore').split(',').map((s) => s.trim()).filter((s) => /^[A-Za-z]+$/.test(s));
 const VARIANTS = [];
 VOICES.forEach((v) => { const id = v.toLowerCase() + (STYLE ? '-calm' : ''); if (!VARIANTS.some((x) => x.id === id)) VARIANTS.push({ id, voice: v, style: STYLE }); });
-const ALL_CLIPS = [{"name": "p-navon-meod", "text": "נכון מאוד!", "send": "נָכוֹן מְאוֹד!", "note": "positive: letter/picture games, after a correct answer"}, {"name": "p-yofi", "text": "יופי של דבר!", "send": "יוֹפִי שֶׁל דָּבָר!", "note": "positive: letter/picture games"}, {"name": "p-alufim", "text": "אלופים!", "send": "אַלּוּפִים!", "note": "positive: letter/picture games"}, {"name": "p-mamshichim", "text": "כל הכבוד! ממשיכים!", "send": "כָּל הַכָּבוֹד! מַמְשִׁיכִים!", "note": "positive: letter/picture games, moving on"}, {"name": "p-meule", "text": "מעולה!", "send": "מְעוּלֶּה!", "note": "positive: alphabet game"}, {"name": "p-yofi-tshuva", "text": "יופי של תשובה!", "send": "יֹפִי שֶׁל תְּשׁוּבָה!", "note": "positive: alphabet game"}, {"name": "p-wow-stars", "text": "וואו! איזה אלופים! השגתם 3 כוכבים מושלמים!", "send": "וואו! איזה אלופים! השגתם 3 כוכבים מושלמים!", "note": "positive: end screen, 3 stars (no nikud, as in code)"}, {"name": "n-karov", "text": "נסו שוב, אתם קרובים מאוד!", "send": "נַסּוּ שׁוּב, אַתֶּם קְרוֹבִים מְאוֹד!", "note": "gentle: listen-to-animal game, wrong answer"}, {"name": "n-kimat", "text": "כמעט! נסו שוב!", "send": "כִּמְעַט! נַסּוּ שׁוּב!", "note": "gentle: alphabet game, wrong answer"}, {"name": "n-kimat-count", "text": "כמעט! סופרים לאט, פריט אחר פריט, ולא שוכחים אף אחד", "send": "כמעט! סוֹפְרִים לְאַט, פְּרִיט אַחַר פְּרִיט, וְלֹא שׁוֹכְחִים אַף אֶחָד", "note": "gentle: numbers game, wrong answer + hint"}, {"name": "n-od-paam", "text": "עוד פעם! מסתכלים בקווים ובפינות, ונזכרים בשם שלה", "send": "עוֹד פַּעַם! מִסְתַּכְּלִים בַּקַּוִּים וּבַפִּנּוֹת, וְנִזְכָּרִים בְּשֵׁם שֶׁלָּהּ", "note": "gentle: shapes game, second wrong answer + hint"}, {"name": "n-waiting", "text": "אני מחכה לתשובה! כמה יש כאן?", "send": "אני מחכה לתשובה! כַּמָּה יֵשׁ כָּאן?", "note": "gentle nudge: numbers game, when the child is idle"}, {"name": "p-nehedar", "text": "נהדר!", "send": "נֶהְדָּר!", "note": "positive: general, after a correct answer (new)"}, {"name": "p-kol-hakavod", "text": "כל הכבוד!", "send": "כָּל הַכָּבוֹד!", "note": "positive: general, most common phrase in the games (new)"}, {"name": "p-nachon", "text": "נכון!", "send": "נָכוֹן!", "note": "positive: short, after a correct answer (new)"}, {"name": "p-metzuyan", "text": "מצוין!", "send": "מְצֻיָּן!", "note": "positive: short (new)"}, {"name": "p-teshuva-nechona", "text": "איזו תשובה נכונה!", "send": "אֵיזוֹ תְּשׁוּבָה נְכוֹנָה!", "note": "positive: after a correct answer (new)"}, {"name": "p-hitzlachtem", "text": "הצלחתם! כל הכבוד!", "send": "הִצְלַחְתֶּם! כָּל הַכָּבוֹד!", "note": "positive: end of a round (new)"}, {"name": "p-metzuyanim", "text": "אתם ממש מצוינים!", "send": "אַתֶּם מַמָּשׁ מְצֻיָּנִים!", "note": "positive: encouragement mid-game (new)"}, {"name": "p-lomdim-yafe", "text": "אתם לומדים כל כך יפה!", "send": "אַתֶּם לוֹמְדִים כָּל כָּךְ יָפֶה!", "note": "positive: encouragement mid-game (new)"}, {"name": "n-od-paam-2", "text": "עוד פעם!", "send": "עוֹד פַּעַם!", "note": "gentle: short, after a wrong answer (new)"}, {"name": "n-beseder", "text": "זה בסדר, נסו שוב!", "send": "זֶה בְּסֵדֶר, נַסּוּ שׁוּב!", "note": "gentle: after a wrong answer (new)"}, {"name": "n-lo-nora", "text": "לא נורא, כולם לומדים! נסו שוב!", "send": "לֹא נוֹרָא, כֻּלָּם לוֹמְדִים! נַסּוּ שׁוּב!", "note": "gentle: after a wrong answer (new)"}, {"name": "n-beyachad", "text": "בואו ננסה עוד פעם ביחד!", "send": "בּוֹאוּ נְנַסֶּה עוֹד פַּעַם בְּיַחַד!", "note": "gentle: second wrong answer (new)"}, {"name": "n-hakshivu", "text": "הקשיבו שוב, ובחרו לאט.", "send": "הַקְשִׁיבוּ שׁוּב, וּבִחֲרוּ לְאַט.", "note": "gentle: listening games, after a wrong answer (new)"}, {"name": "n-ani-kan", "text": "אני כאן איתכם, נסו עוד פעם!", "send": "אֲנִי כָּאן אִתְּכֶם, נַסּוּ עוֹד פַּעַם!", "note": "gentle: second wrong answer (new)"}, {"name": "n-kimat-sham", "text": "כמעט שם! עוד ניסיון אחד!", "send": "כִּמְעַט שָׁם! עוֹד נִסָּיוֹן אֶחָד!", "note": "gentle: close answer (new)"}];
-const CLIPS = argv.includes('--test') ? ALL_CLIPS.filter((c) => ['p-navon-meod', 'n-karov'].includes(c.name)) : ALL_CLIPS;
+const BASE_CLIPS = [{"name": "p-navon-meod", "text": "נכון מאוד!", "send": "נָכוֹן מְאוֹד!", "note": "positive: letter/picture games, after a correct answer"}, {"name": "p-yofi", "text": "יופי של דבר!", "send": "יוֹפִי שֶׁל דָּבָר!", "note": "positive: letter/picture games"}, {"name": "p-alufim", "text": "אלופים!", "send": "אַלּוּפִים!", "note": "positive: letter/picture games"}, {"name": "p-mamshichim", "text": "כל הכבוד! ממשיכים!", "send": "כָּל הַכָּבוֹד! מַמְשִׁיכִים!", "note": "positive: letter/picture games, moving on"}, {"name": "p-meule", "text": "מעולה!", "send": "מְעוּלֶּה!", "note": "positive: alphabet game"}, {"name": "p-yofi-tshuva", "text": "יופי של תשובה!", "send": "יֹפִי שֶׁל תְּשׁוּבָה!", "note": "positive: alphabet game"}, {"name": "p-wow-stars", "text": "וואו! איזה אלופים! השגתם 3 כוכבים מושלמים!", "send": "וואו! איזה אלופים! השגתם 3 כוכבים מושלמים!", "note": "positive: end screen, 3 stars (no nikud, as in code)"}, {"name": "n-karov", "text": "נסו שוב, אתם קרובים מאוד!", "send": "נַסּוּ שׁוּב, אַתֶּם קְרוֹבִים מְאוֹד!", "note": "gentle: listen-to-animal game, wrong answer"}, {"name": "n-kimat", "text": "כמעט! נסו שוב!", "send": "כִּמְעַט! נַסּוּ שׁוּב!", "note": "gentle: alphabet game, wrong answer"}, {"name": "n-kimat-count", "text": "כמעט! סופרים לאט, פריט אחר פריט, ולא שוכחים אף אחד", "send": "כמעט! סוֹפְרִים לְאַט, פְּרִיט אַחַר פְּרִיט, וְלֹא שׁוֹכְחִים אַף אֶחָד", "note": "gentle: numbers game, wrong answer + hint"}, {"name": "n-od-paam", "text": "עוד פעם! מסתכלים בקווים ובפינות, ונזכרים בשם שלה", "send": "עוֹד פַּעַם! מִסְתַּכְּלִים בַּקַּוִּים וּבַפִּנּוֹת, וְנִזְכָּרִים בְּשֵׁם שֶׁלָּהּ", "note": "gentle: shapes game, second wrong answer + hint"}, {"name": "n-waiting", "text": "אני מחכה לתשובה! כמה יש כאן?", "send": "אני מחכה לתשובה! כַּמָּה יֵשׁ כָּאן?", "note": "gentle nudge: numbers game, when the child is idle"}, {"name": "p-nehedar", "text": "נהדר!", "send": "נֶהְדָּר!", "note": "positive: general, after a correct answer (new)"}, {"name": "p-kol-hakavod", "text": "כל הכבוד!", "send": "כָּל הַכָּבוֹד!", "note": "positive: general, most common phrase in the games (new)"}, {"name": "p-nachon", "text": "נכון!", "send": "נָכוֹן!", "note": "positive: short, after a correct answer (new)"}, {"name": "p-metzuyan", "text": "מצוין!", "send": "מְצֻיָּן!", "note": "positive: short (new)"}, {"name": "p-teshuva-nechona", "text": "איזו תשובה נכונה!", "send": "אֵיזוֹ תְּשׁוּבָה נְכוֹנָה!", "note": "positive: after a correct answer (new)"}, {"name": "p-hitzlachtem", "text": "הצלחתם! כל הכבוד!", "send": "הִצְלַחְתֶּם! כָּל הַכָּבוֹד!", "note": "positive: end of a round (new)"}, {"name": "p-metzuyanim", "text": "אתם ממש מצוינים!", "send": "אַתֶּם מַמָּשׁ מְצֻיָּנִים!", "note": "positive: encouragement mid-game (new)"}, {"name": "p-lomdim-yafe", "text": "אתם לומדים כל כך יפה!", "send": "אַתֶּם לוֹמְדִים כָּל כָּךְ יָפֶה!", "note": "positive: encouragement mid-game (new)"}, {"name": "n-od-paam-2", "text": "עוד פעם!", "send": "עוֹד פַּעַם!", "note": "gentle: short, after a wrong answer (new)"}, {"name": "n-beseder", "text": "זה בסדר, נסו שוב!", "send": "זֶה בְּסֵדֶר, נַסּוּ שׁוּב!", "note": "gentle: after a wrong answer (new)"}, {"name": "n-lo-nora", "text": "לא נורא, כולם לומדים! נסו שוב!", "send": "לֹא נוֹרָא, כֻּלָּם לוֹמְדִים! נַסּוּ שׁוּב!", "note": "gentle: after a wrong answer (new)"}, {"name": "n-beyachad", "text": "בואו ננסה עוד פעם ביחד!", "send": "בּוֹאוּ נְנַסֶּה עוֹד פַּעַם בְּיַחַד!", "note": "gentle: second wrong answer (new)"}, {"name": "n-hakshivu", "text": "הקשיבו שוב, ובחרו לאט.", "send": "הַקְשִׁיבוּ שׁוּב, וּבִחֲרוּ לְאַט.", "note": "gentle: listening games, after a wrong answer (new)"}, {"name": "n-ani-kan", "text": "אני כאן איתכם, נסו עוד פעם!", "send": "אֲנִי כָּאן אִתְּכֶם, נַסּוּ עוֹד פַּעַם!", "note": "gentle: second wrong answer (new)"}, {"name": "n-kimat-sham", "text": "כמעט שם! עוד ניסיון אחד!", "send": "כִּמְעַט שָׁם! עוֹד נִסָּיוֹן אֶחָד!", "note": "gentle: close answer (new)"}];
+const TEST = argv.includes('--test');
+const ONLY = arg('only', '').split(',').map((s) => s.trim()).filter(Boolean);   // groups: p n (core) num day abc shp rhy wrl (app)
+const USE_APP = !TEST && !argv.includes('--no-app');
+const APP_CLIPS_URL = 'https://raw.githubusercontent.com/Yakir-hazan/otkids-voice-compare-temp/main/clips.json';
+let ALL_CLIPS = BASE_CLIPS;
+let CLIPS = [];
+function getJson(url, hops) {
+  return new Promise((resolve, reject) => {
+    const req = https.get(url, { headers: { 'User-Agent': 'otkids-compare' } }, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location && (hops || 0) < 3) { res.resume(); resolve(getJson(res.headers.location, (hops || 0) + 1)); return; }
+      if (res.statusCode !== 200) { res.resume(); reject(new Error('HTTP ' + res.statusCode)); return; }
+      const chunks = [];
+      res.on('data', (d) => chunks.push(d));
+      res.on('end', () => { try { resolve(JSON.parse(Buffer.concat(chunks).toString('utf8'))); } catch (e) { reject(e); } });
+    });
+    req.on('error', reject);
+    req.setTimeout(20000, () => req.destroy(new Error('timeout')));
+  });
+}
+async function loadClips() {
+  if (USE_APP) {
+    let app;
+    try { app = await getJson(APP_CLIPS_URL); } catch (e) { throw new Error('Could not load the app sentences from GitHub (' + e.message + '). Check the connection and run again.'); }
+    ALL_CLIPS = BASE_CLIPS.concat(app);
+    console.log('app sentences loaded: ' + app.length);
+  }
+  if (TEST) ALL_CLIPS = BASE_CLIPS.filter((c) => ['p-navon-meod', 'n-karov'].includes(c.name));
+  CLIPS = ONLY.length ? ALL_CLIPS.filter((c) => ONLY.indexOf(c.name.split('-')[0]) !== -1) : ALL_CLIPS;
+  if (!CLIPS.length) throw new Error('No clips match --only ' + ONLY.join(','));
+}
+// variants.json lists every clip that exists on disk, so the listening page keeps showing earlier batches too.
+function writeManifest() {
+  const have = ALL_CLIPS.filter((c) => VARIANTS.some((v) => fs.existsSync(path.join(OUT_DIR, v.id, c.name + '.wav'))));
+  fs.writeFileSync(path.join(OUT_DIR, 'variants.json'), JSON.stringify({ model: MODEL, variants: VARIANTS, clips: have }, null, 2));
+}
+
 
 let keyIdx = 0;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -120,9 +156,10 @@ function wav(pcm, rate) {
 
 async function main() {
   if (!KEYS.length) { console.error('No API key'); return 2; }
+  await loadClips();
   fs.mkdirSync(OUT_DIR, { recursive: true });
   VARIANTS.forEach((v) => fs.mkdirSync(path.join(OUT_DIR, v.id), { recursive: true }));
-  fs.writeFileSync(path.join(OUT_DIR, 'variants.json'), JSON.stringify({ model: MODEL, variants: VARIANTS, clips: CLIPS }, null, 2));
+  writeManifest();
   const total = CLIPS.length * VARIANTS.length;
   console.log('clips: ' + CLIPS.length + ' | variants: ' + VARIANTS.length + ' | total files: ' + total + ' | model: ' + MODEL + ' | keys: ' + KEYS.length);
   console.log('output: ' + path.resolve(OUT_DIR) + '\n');
@@ -159,6 +196,7 @@ async function main() {
     fs.writeFileSync(path.join(OUT_DIR, '_errors.json'), JSON.stringify(failed, null, 2));
     console.log('errors saved to ' + path.join(OUT_DIR, '_errors.json') + ' (run again to retry)');
   }
+  writeManifest();
   console.log('done: ' + path.resolve(OUT_DIR));
   return failed.length ? 1 : 0;
 }
