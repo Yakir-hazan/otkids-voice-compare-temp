@@ -111,7 +111,7 @@
   fetch('variants.json', { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(function (m) {
     variants = m.variants || []; clips = m.clips || [];
     if (!variants.length || !clips.length) throw new Error('empty');
-    $('sub').textContent = variants.length + ' קולות · ' + clips.length + ' קטעים: מילים ומשפטים אמיתיים מהמשחקים';
+    $('sub').textContent = variants.length + ' קולות · ' + clips.length + ' משפטי משוב מהמשחקים: חיוביים ומעודדים';
     render();
   }).catch(function () { $('sub').textContent = 'עדיין אין קבצים. הפק אותם עם הכלי והעלה את התיקייה לענף.'; });
 })();
